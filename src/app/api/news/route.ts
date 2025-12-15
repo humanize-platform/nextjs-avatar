@@ -53,6 +53,7 @@ export async function GET() {
         // Check cache first
         const cached = getCachedNews();
         if (cached) {
+            console.log('📦 NEWS: Served from cache (date:', cached.date + ')');
             return NextResponse.json({
                 newsText: cached.content,
                 audioUrl: cached.audioPath || null,
@@ -61,6 +62,7 @@ export async function GET() {
         }
 
         // Fetch from Perplexity API
+        console.log('🌐 NEWS: Fetching fresh content from Perplexity API...');
         const perplexityApiKey = process.env.PERPLEXITY_API_KEY;
 
         if (!perplexityApiKey) {
@@ -80,7 +82,7 @@ export async function GET() {
                 messages: [
                     {
                         role: 'system',
-                        content: 'You are a news presenter. Return ONE brief, engaging news describing ONE most recent important AI news headline of today. Ensure the news is around AI and Human collaboration. Max 80 words. At the end mention the source of this news. Output plain text only.',
+                        content: 'You are a news presenter. Return ONE brief, engaging news describing ONE most recent important AI news headline of today. Ensure the news is around AI and Human collaboration. Max 80 words. Output plain text only.',
                     },
                     {
                         role: 'user',
