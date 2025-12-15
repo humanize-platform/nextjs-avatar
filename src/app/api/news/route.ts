@@ -1,10 +1,5 @@
 // src/app/api/news/route.ts
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-
-// Use /tmp for Vercel (serverless has read-only filesystem except /tmp)
-const CACHE_FILE = process.env.VERCEL ? '/tmp/news_cache.json' : path.join(process.cwd(), 'news_cache.json');
 
 interface CacheData {
     date: string;
@@ -12,21 +7,32 @@ interface CacheData {
     audioPath?: string;
 }
 
-// Check for cached news
+// ===== IN-MEMORY CACHE =====
+// This global variable persists across warm function invocations on Vercel.
+// When container is recycled (cold start), cache resets - but this is much 
+// more reliable than /tmp files which are lost between different containers.
+// 
+// Using 'globalThis' ensures the cache survives module reloads in dev mode
+// and persists across serverless function invocations in production.
+
+// Declare global type for TypeScript
+declare global {
+    // eslint-disable-next-line no-var
+    var newsCache: CacheData | undefined;
+}
+
+// Check for cached news (in-memory)
 function getCachedNews(): CacheData | null {
     try {
-        if (fs.existsSync(CACHE_FILE)) {
-            const fileContent = fs.readFileSync(CACHE_FILE, 'utf-8');
-            // Guard against empty file
-            if (!fileContent || fileContent.trim() === '') {
-                return null;
-            }
-            const data = JSON.parse(fileContent);
+        const cached = globalThis.newsCache;
+        if (cached) {
             const today = new Date().toISOString().split('T')[0];
-
-            if (data.date === today) {
-                return data;
+            if (cached.date === today) {
+                return cached;
             }
+            // Cache is stale (different day), clear it
+            console.log('📅 NEWS: Cache is from', cached.date, '- clearing stale cache');
+            globalThis.newsCache = undefined;
         }
     } catch (error) {
         console.error('Cache read error:', error);
@@ -34,15 +40,15 @@ function getCachedNews(): CacheData | null {
     return null;
 }
 
-// Save news to cache
+// Save news to cache (in-memory)
 function saveToCache(content: string, audioPath?: string): void {
     try {
-        const cacheData: CacheData = {
+        globalThis.newsCache = {
             date: new Date().toISOString().split('T')[0],
             content,
             audioPath,
         };
-        fs.writeFileSync(CACHE_FILE, JSON.stringify(cacheData, null, 2));
+        console.log('💾 NEWS: Saved to in-memory cache for date:', globalThis.newsCache.date);
     } catch (error) {
         console.error('Cache write error:', error);
     }
