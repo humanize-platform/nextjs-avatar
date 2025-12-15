@@ -1,0 +1,86 @@
+/* src/app/globals.css */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --gradient-start: #1a237e;
+  --gradient-mid: #283593;
+  --gradient-end: #0d47a1;
+  --glass-bg: rgba(255, 255, 255, 0.15);
+  --glass-border: rgba(255, 255, 255, 0.25);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-mid) 50%, var(--gradient-end) 100%);
+  background-attachment: fixed;
+}
+
+/* Glassmorphism Card */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 16px;
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  padding: 24px;
+}
+
+/* Audio Player Styling */
+audio {
+  width: 100%;
+  border-radius: 8px;
+  margin: 8px 0;
+}
+
+audio::-webkit-media-controls-panel {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* News Transcript */
+.news-transcript {
+  color: #ffffff;
+  font-size: 16px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+/* Loading Animation */
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.loading {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Responsive Container */
+.container {
+  max-width: 100%;
+  padding: 16px;
+  margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 480px;
+    padding: 24px;
+    margin-top: 40px;
+  }
+}
