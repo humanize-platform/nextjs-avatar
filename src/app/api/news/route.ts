@@ -1,125 +1,98 @@
 // src/app/api/news/route.ts
 import { NextResponse } from 'next/server';
+import { unstable_cache } from 'next/cache';
 
-interface CacheData {
-    date: string;
-    content: string;
-    audioPath?: string;
+// Interface for what we want to return
+interface NewsData {
+    newsText: string;
+    audioUrl: string | null;
+    generatedAt: number; // Timestamp to detect cache age
 }
 
-// ===== IN-MEMORY CACHE =====
-// This global variable persists across warm function invocations on Vercel.
-// When container is recycled (cold start), cache resets - but this is much 
-// more reliable than /tmp files which are lost between different containers.
-// 
-// Using 'globalThis' ensures the cache survives module reloads in dev mode
-// and persists across serverless function invocations in production.
+// 1. Define the actual fetch function (uncached)
+async function fetchNewsFromPerplexity(): Promise<NewsData> {
+    console.log('🌐 NEWS: Cache miss/stale - Fetching fresh content from Perplexity API...');
+    const perplexityApiKey = process.env.PERPLEXITY_API_KEY;
 
-// Declare global type for TypeScript
-declare global {
-    // eslint-disable-next-line no-var
-    var newsCache: CacheData | undefined;
-}
-
-// Check for cached news (in-memory)
-function getCachedNews(): CacheData | null {
-    try {
-        const cached = globalThis.newsCache;
-        if (cached) {
-            const today = new Date().toISOString().split('T')[0];
-            if (cached.date === today) {
-                return cached;
-            }
-            // Cache is stale (different day), clear it
-            console.log('📅 NEWS: Cache is from', cached.date, '- clearing stale cache');
-            globalThis.newsCache = undefined;
-        }
-    } catch (error) {
-        console.error('Cache read error:', error);
+    if (!perplexityApiKey) {
+        throw new Error('PERPLEXITY_API_KEY not configured');
     }
-    return null;
+
+    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${perplexityApiKey}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            model: 'sonar',
+            messages: [
+                {
+                    role: 'system',
+                    content: 'You are a news presenter. Return ONE brief, engaging news describing ONE most recent important AI news headline of today. Ensure the news is around AI and Human collaboration. Max 80 words. Output plain text only.',
+                },
+                {
+                    role: 'user',
+                    content: 'What is the most important AI news of today?',
+                },
+            ],
+        }),
+    });
+
+    if (!response.ok) {
+        throw new Error(`Perplexity API failed: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    let newsContent = data.choices?.[0]?.message?.content || 'No news available';
+
+    // Clean up citations (e.g. [1], [2])
+    newsContent = newsContent.replace(/\[\d+\]/g, '').replace(/\s{2,}/g, ' ').trim();
+
+    return {
+        newsText: newsContent,
+        audioUrl: null,
+        generatedAt: Date.now(), // Capture time of generation
+    };
 }
 
-// Save news to cache (in-memory)
-function saveToCache(content: string, audioPath?: string): void {
-    try {
-        globalThis.newsCache = {
-            date: new Date().toISOString().split('T')[0],
-            content,
-            audioPath,
-        };
-        console.log('💾 NEWS: Saved to in-memory cache for date:', globalThis.newsCache.date);
-    } catch (error) {
-        console.error('Cache write error:', error);
+// 2. Wrap it in unstable_cache
+// We include the "date" in the key parts so it automatically invalidates every day.
+const getDailyNews = unstable_cache(
+    async () => fetchNewsFromPerplexity(),
+    ['daily-news-cache-v2'], // base key part - bumped to v2 to force schema update
+    {
+        // This makes the cache entry specific to the current date.
+        // When the date changes, the key differs, so we get a fresh fetch.
+        tags: [`news-${new Date().toISOString().split('T')[0]}`],
+        revalidate: 86400, // 24 hours
     }
-}
+);
 
 export async function GET() {
     try {
-        // Check cache first
-        const cached = getCachedNews();
-        if (cached) {
-            console.log('📦 NEWS: Served from cache (date:', cached.date + ')');
-            return NextResponse.json({
-                newsText: cached.content,
-                audioUrl: cached.audioPath || null,
-                fromCache: true,
-            });
+        // We get the cached data or (if missing/stale) the fresh fetch automatically
+        const data = await getDailyNews();
+
+        // Calculate age to determine source (approximate)
+        const ageInSeconds = (Date.now() - data.generatedAt) / 1000;
+        const isFresh = ageInSeconds < 10; // Consider < 10s as "freshly fetched"
+
+        if (isFresh) {
+            console.log('🆕 SOURCE: Perplexity API (Fresh Fetch)');
+        } else {
+            console.log(`📦 SOURCE: Next.js Data Cache (Age: ${Math.floor(ageInSeconds)}s)`);
         }
-
-        // Fetch from Perplexity API
-        console.log('🌐 NEWS: Fetching fresh content from Perplexity API...');
-        const perplexityApiKey = process.env.PERPLEXITY_API_KEY;
-
-        if (!perplexityApiKey) {
-            return NextResponse.json({
-                error: 'PERPLEXITY_API_KEY not configured'
-            }, { status: 500 });
-        }
-
-        const response = await fetch('https://api.perplexity.ai/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${perplexityApiKey}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                model: 'sonar',
-                messages: [
-                    {
-                        role: 'system',
-                        content: 'You are a news presenter. Return ONE brief, engaging news describing ONE most recent important AI news headline of today. Ensure the news is around AI and Human collaboration. Max 80 words. Output plain text only.',
-                    },
-                    {
-                        role: 'user',
-                        content: 'What is the most important AI news of today?',
-                    },
-                ],
-            }),
-        });
-
-        const data = await response.json();
-        let newsContent = data.choices?.[0]?.message?.content || 'No news available';
-
-        // Clean up citations
-        newsContent = newsContent.replace(/\[\d+\]/g, '').replace(/\s{2,}/g, ' ').trim();
-
-        // Save to cache
-        saveToCache(newsContent);
-
-        // TODO: Add TTS generation here
-        // For now, return null for audioUrl - see Step 10 for TTS options
 
         return NextResponse.json({
-            newsText: newsContent,
-            audioUrl: null, // Replace with actual audio URL after TTS
-            fromCache: false,
+            ...data,
+            fromCache: !isFresh,
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('API Error:', error);
         return NextResponse.json({
-            error: 'Failed to fetch news'
+            error: error.message || 'Failed to fetch news'
         }, { status: 500 });
     }
 }
