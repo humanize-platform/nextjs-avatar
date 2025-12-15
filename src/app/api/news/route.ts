@@ -1,17 +1,64 @@
 // src/app/api/news/route.ts
 import { NextResponse } from 'next/server';
-import { unstable_cache } from 'next/cache';
+import { createClient } from '@vercel/edge-config';
 
-// Interface for what we want to return
+// 1. Initialize Edge Config Client (Read-Only)
+// We check for existence to prevent build-time errors if the env var is missing.
+const config = process.env.EDGE_CONFIG
+    ? createClient(process.env.EDGE_CONFIG)
+    : null;
+
 interface NewsData {
     newsText: string;
     audioUrl: string | null;
-    generatedAt: number; // Timestamp to detect cache age
+    generatedAt: number;
 }
 
-// 1. Define the actual fetch function (uncached)
+// 2. Helper to Write to Edge Config (requires Vercel API)
+async function writeToEdgeConfig(key: string, value: NewsData) {
+    const edgeConfigId = process.env.EDGE_CONFIG_ID;
+    const teamToken = process.env.VERCEL_API_TOKEN;
+
+    if (!edgeConfigId || !teamToken) {
+        console.warn('⚠️ EDGE CONFIG: Missing EDGE_CONFIG_ID or VERCEL_API_TOKEN. Cannot cache update.');
+        return;
+    }
+
+    try {
+        const updateEdgeConfig = await fetch(
+            `https://api.vercel.com/v1/edge-config/${edgeConfigId}/items`,
+            {
+                method: 'PATCH',
+                headers: {
+                    Authorization: `Bearer ${teamToken}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    items: [
+                        {
+                            operation: 'upsert',
+                            key: key,
+                            value: value,
+                        },
+                    ],
+                }),
+            }
+        );
+
+        if (!updateEdgeConfig.ok) {
+            const error = await updateEdgeConfig.json();
+            console.error('❌ EDGE CONFIG WRITE ERROR:', error);
+        } else {
+            console.log(`✅ EDGE CONFIG: Updated cache for key: ${key}`);
+        }
+    } catch (error) {
+        console.error('❌ EDGE CONFIG NETWORK ERROR:', error);
+    }
+}
+
+// 3. Fetch from Perplexity (Same logic)
 async function fetchNewsFromPerplexity(): Promise<NewsData> {
-    console.log('🌐 NEWS: Cache miss/stale - Fetching fresh content from Perplexity API...');
+    console.log('🌐 NEWS: Fetching fresh content from Perplexity API...');
     const perplexityApiKey = process.env.PERPLEXITY_API_KEY;
 
     if (!perplexityApiKey) {
@@ -45,48 +92,53 @@ async function fetchNewsFromPerplexity(): Promise<NewsData> {
 
     const data = await response.json();
     let newsContent = data.choices?.[0]?.message?.content || 'No news available';
-
-    // Clean up citations (e.g. [1], [2])
     newsContent = newsContent.replace(/\[\d+\]/g, '').replace(/\s{2,}/g, ' ').trim();
 
     return {
         newsText: newsContent,
         audioUrl: null,
-        generatedAt: Date.now(), // Capture time of generation
+        generatedAt: Date.now(),
     };
 }
 
-// 2. Wrap it in unstable_cache
-// We include the "date" in the key parts so it automatically invalidates every day.
-const getDailyNews = unstable_cache(
-    async () => fetchNewsFromPerplexity(),
-    ['daily-news-cache-v2'], // base key part - bumped to v2 to force schema update
-    {
-        // This makes the cache entry specific to the current date.
-        // When the date changes, the key differs, so we get a fresh fetch.
-        tags: [`news-${new Date().toISOString().split('T')[0]}`],
-        revalidate: 86400, // 24 hours
-    }
-);
-
 export async function GET() {
     try {
-        // We get the cached data or (if missing/stale) the fresh fetch automatically
-        const data = await getDailyNews();
+        const today = new Date().toISOString().split('T')[0];
+        const cacheKey = `daily_news_${today}`;
 
-        // Calculate age to determine source (approximate)
-        const ageInSeconds = (Date.now() - data.generatedAt) / 1000;
-        const isFresh = ageInSeconds < 10; // Consider < 10s as "freshly fetched"
-
-        if (isFresh) {
-            console.log('🆕 SOURCE: Perplexity API (Fresh Fetch)');
-        } else {
-            console.log(`📦 SOURCE: Next.js Data Cache (Age: ${Math.floor(ageInSeconds)}s)`);
+        // A. READ CHECK
+        let cachedData: NewsData | undefined;
+        try {
+            // Only try to read if we have a valid config
+            if (config) {
+                cachedData = await config.get<NewsData>(cacheKey);
+            } else {
+                console.warn('⚠️ Edge Config Client not initialized (Missing EDGE_CONFIG env var)');
+            }
+        } catch (e) {
+            console.warn('⚠️ Edge Config Read Failed:', e);
         }
 
+        if (cachedData) {
+            console.log(`📦 SOURCE: Edge Config Cache (Key: ${cacheKey})`);
+            return NextResponse.json({
+                ...cachedData,
+                fromCache: true,
+                source: 'edge-config'
+            });
+        }
+
+        // B. CACHE MISS
+        console.log(`🆕 SOURCE: Cache Miss for ${cacheKey}. Fetching...`);
+        const freshData = await fetchNewsFromPerplexity();
+
+        // C. WRITE BACK
+        await writeToEdgeConfig(cacheKey, freshData);
+
         return NextResponse.json({
-            ...data,
-            fromCache: !isFresh,
+            ...freshData,
+            fromCache: false,
+            source: 'perplexity'
         });
 
     } catch (error: any) {
@@ -96,3 +148,4 @@ export async function GET() {
         }, { status: 500 });
     }
 }
+
