@@ -3,7 +3,8 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
-const CACHE_FILE = path.join(process.cwd(), 'news_cache.json');
+// Use /tmp for Vercel (serverless has read-only filesystem except /tmp)
+const CACHE_FILE = process.env.VERCEL ? '/tmp/news_cache.json' : path.join(process.cwd(), 'news_cache.json');
 
 interface CacheData {
     date: string;
@@ -15,7 +16,12 @@ interface CacheData {
 function getCachedNews(): CacheData | null {
     try {
         if (fs.existsSync(CACHE_FILE)) {
-            const data = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8'));
+            const fileContent = fs.readFileSync(CACHE_FILE, 'utf-8');
+            // Guard against empty file
+            if (!fileContent || fileContent.trim() === '') {
+                return null;
+            }
+            const data = JSON.parse(fileContent);
             const today = new Date().toISOString().split('T')[0];
 
             if (data.date === today) {
