@@ -74,11 +74,11 @@ export async function GET() {
                 messages: [
                     {
                         role: 'system',
-                        content: `You are a news presenter. Return two brief, engaging sentences describing the two most important AI news headlines from today. Ensure the news are around AI and Human collaboration. Each with max 80 words. Add a new line between the two sentences. Do NOT include any citations, reference numbers like [1], footnotes, URLs, or source lists. Output plain text only.`,
+                        content: 'You are a news presenter. Return ONE brief, engaging news describing ONE most recent important AI news headline of today. Ensure the news is around AI and Human collaboration. Max 80 words. At the end mention the source of this news. Output plain text only.',
                     },
                     {
                         role: 'user',
-                        content: 'What are the two most important AI news today? Answer with exactly two short sentences suitable for voice narration.',
+                        content: 'What is the most important AI news of today?',
                     },
                 ],
             }),
