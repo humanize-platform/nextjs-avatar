@@ -80,10 +80,10 @@ export default function SubscribePage() {
 
 
             <div className="max-w-lg w-full bg-white border border-slate-100 p-8 sm:p-12 rounded-3xl shadow-xl shadow-slate-200/50 relative z-10 transition-all hover:shadow-2xl hover:shadow-slate-200/60">
-                <div className="mb-8">
+                <div className="mb-8 text-center">
                     <h3 className="text-2xl font-extrabold text-slate-900 mb-4 tracking-tight">humanize AI News</h3>
                     <p className="text-lg text-slate-500 leading-relaxed">
-                        Stay connected with the latest AI breakthroughs, curated to bring a human touch to technology.
+                        Curated AI breakthroughs with a human touch.
                     </p>
                 </div>
 
@@ -91,7 +91,7 @@ export default function SubscribePage() {
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                     <div className="flex flex-col gap-3">
-                        <label htmlFor="name" className="block text-sm font-semibold text-slate-700 ml-1">
+                        <label htmlFor="name" className="block text-sm font-semibold text-slate-700 ml-3">
                             Full Name
                         </label>
                         <input
@@ -107,7 +107,7 @@ export default function SubscribePage() {
                     </div>
 
                     <div className="flex flex-col gap-3">
-                        <label htmlFor="email" className="block text-sm font-semibold text-slate-700 ml-1">
+                        <label htmlFor="email" className="block text-sm font-semibold text-slate-700 ml-3">
                             Email Address
                         </label>
                         <input
@@ -123,7 +123,7 @@ export default function SubscribePage() {
                     </div>
 
                     <div className="flex flex-col gap-3">
-                        <label htmlFor="phone" className="block text-sm font-semibold text-slate-700 ml-1">
+                        <label htmlFor="phone" className="block text-sm font-semibold text-slate-700 ml-3">
                             Phone Number <span className="text-slate-400 font-normal">(Optional)</span>
                         </label>
                         <input
@@ -143,23 +143,25 @@ export default function SubscribePage() {
                         </div>
                     )}
 
-                    <button
-                        type="submit"
-                        disabled={status === 'loading'}
-                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg py-5 rounded-2xl hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-4 focus:ring-blue-500/30 disabled:opacity-70 disabled:grayscale transition-all duration-300 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/40 active:scale-[0.99] mt-6"
-                    >
-                        {status === 'loading' ? (
-                            <span className="flex items-center justify-center gap-3">
-                                <svg className="animate-spin h-5 w-5 text-white/90" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Processing...
-                            </span>
-                        ) : (
-                            'Get Access Now'
-                        )}
-                    </button>
+                    <div className="flex justify-center w-full mt-6">
+                        <button
+                            type="submit"
+                            disabled={status === 'loading'}
+                            className="w-10/12 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg py-5 rounded-2xl hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-4 focus:ring-blue-500/30 disabled:opacity-70 disabled:grayscale transition-all duration-300 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/40 active:scale-[0.99]"
+                        >
+                            {status === 'loading' ? (
+                                <span className="flex items-center justify-center gap-3">
+                                    <svg className="animate-spin h-5 w-5 text-white/90" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Processing...
+                                </span>
+                            ) : (
+                                'Get Access Now'
+                            )}
+                        </button>
+                    </div>
 
                     <div className="h-px bg-slate-200 w-full mt-6 mb-2" />
 
