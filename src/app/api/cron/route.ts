@@ -1,4 +1,5 @@
 
+// Force Vercel Deploy Trigger
 import { NextResponse } from 'next/server';
 import { createClient } from '@vercel/edge-config';
 import dbConnect from '@/lib/mongodb';
