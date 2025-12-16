@@ -54,7 +54,8 @@ export default function SubscribePage() {
                     </div>
                     <h2 className="text-3xl font-bold text-slate-900 mb-4 tracking-tight">You're In!</h2>
                     <p className="text-slate-600 text-lg leading-relaxed">
-                        Thank you for subscribing, <span className="text-slate-900 font-medium">{formData.name}</span>.
+                        Thank you for subscribing, <br /> <span className="text-slate-900 font-medium">{formData.name}</span>.
+
                     </p>
                     <div className="mt-8 p-6 bg-blue-50/50 rounded-2xl border border-blue-100">
                         <p className="text-blue-700 font-medium">
