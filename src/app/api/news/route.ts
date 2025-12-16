@@ -16,7 +16,7 @@ interface NewsData {
 
 // 2. Helper to Write to Edge Config (requires Vercel API)
 async function writeToEdgeConfig(key: string, value: NewsData) {
-    const edgeConfigId = process.env.EDGE_CONFIG_ID;
+    const edgeConfigId = process.env.EDGE_CONFIG_ID; // e.g. ecfg_...
     const teamToken = process.env.VERCEL_API_TOKEN;
 
     if (!edgeConfigId || !teamToken) {
@@ -25,6 +25,46 @@ async function writeToEdgeConfig(key: string, value: NewsData) {
     }
 
     try {
+        // A. FETCH ALL CURRENT ITEMS to find what to clean up
+        const itemsResponse = await fetch(
+            `https://api.vercel.com/v1/edge-config/${edgeConfigId}/items`,
+            {
+                method: 'GET',
+                headers: {
+                    Authorization: `Bearer ${teamToken}`,
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+
+        if (!itemsResponse.ok) {
+            console.error('❌ EDGE CONFIG: Failed to fetch items for cleanup check.', await itemsResponse.text());
+            return;
+        }
+
+        const currentItems = await itemsResponse.json(); // returns { "key1": val, "key2": val... }
+
+        // B. IDENTIFY STALE KEYS
+        // We want to delete any key starting with "daily_news_" that is NOT the current new key
+        const keysToDelete = Object.keys(currentItems || {}).filter(k =>
+            k.startsWith('daily_news_') && k !== key
+        );
+
+        if (keysToDelete.length > 0) {
+            console.log(`🧹 EDGE CONFIG: Found ${keysToDelete.length} stale keys to delete:`, keysToDelete);
+        }
+
+        // C. PREPARE BATCH UPDATE (Deletes + Upsert)
+        const itemsToUpdate = [
+            ...keysToDelete.map(k => ({ operation: 'delete', key: k })),
+            {
+                operation: 'upsert',
+                key: key,
+                value: value,
+            },
+        ];
+
+        // D. EXECUTE BATCH UPDATE
         const updateEdgeConfig = await fetch(
             `https://api.vercel.com/v1/edge-config/${edgeConfigId}/items`,
             {
@@ -34,13 +74,7 @@ async function writeToEdgeConfig(key: string, value: NewsData) {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    items: [
-                        {
-                            operation: 'upsert',
-                            key: key,
-                            value: value,
-                        },
-                    ],
+                    items: itemsToUpdate,
                 }),
             }
         );
@@ -49,7 +83,7 @@ async function writeToEdgeConfig(key: string, value: NewsData) {
             const error = await updateEdgeConfig.json();
             console.error('❌ EDGE CONFIG WRITE ERROR:', error);
         } else {
-            console.log(`✅ EDGE CONFIG: Updated cache for key: ${key}`);
+            console.log(`✅ EDGE CONFIG: Successfully cleaned ${keysToDelete.length} stale keys and updated cache for ${key}`);
         }
     } catch (error) {
         console.error('❌ EDGE CONFIG NETWORK ERROR:', error);
@@ -76,7 +110,7 @@ async function fetchNewsFromPerplexity(): Promise<NewsData> {
             messages: [
                 {
                     role: 'system',
-                    content: 'You are a news presenter. Return ONE brief, engaging news describing ONE most recent important AI news headline of today. Ensure the news is around AI and Human collaboration. Max 80 words. Output plain text only.',
+                    content: 'You are a news presenter. Return a brief, engaging news describing one the most recent important AI news of today. Ensure the news is around AI and Human collaboration. Max 100 words. Output plain text only.',
                 },
                 {
                     role: 'user',
