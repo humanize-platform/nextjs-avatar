@@ -4,7 +4,7 @@ import { createClient } from '@vercel/edge-config';
 import dbConnect from '@/lib/mongodb';
 import Subscriber from '@/lib/models/Subscriber';
 
-// Initialize Edge Config Client
+// Initialize the Edge Config Client
 const config = process.env.EDGE_CONFIG
     ? createClient(process.env.EDGE_CONFIG)
     : null;
