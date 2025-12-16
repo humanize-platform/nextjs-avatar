@@ -81,60 +81,66 @@ export default function SubscribePage() {
 
             <div className="max-w-lg w-full bg-white border border-slate-100 p-8 sm:p-12 rounded-3xl shadow-xl shadow-slate-200/50 relative z-10 transition-all hover:shadow-2xl hover:shadow-slate-200/60">
                 <div className="mb-8 text-center">
-                    <h3 className="text-2xl font-extrabold text-slate-900 mb-4 tracking-tight">humanize AI News</h3>
+                    <h3 className="text-2xl font-extrabold text-slate-900 mb-4 tracking-tight">Your AI Brief</h3>
                     <p className="text-lg text-slate-500 leading-relaxed">
-                        Curated AI breakthroughs with a human touch.
+                        Curated AI news with a human touch.
                     </p>
                 </div>
 
                 <div className="h-px bg-slate-200 w-full mb-10" />
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-                    <div className="flex flex-col gap-3">
-                        <label htmlFor="name" className="block text-sm font-semibold text-slate-700 ml-3">
-                            Full Name
-                        </label>
-                        <input
-                            type="text"
-                            id="name"
-                            name="name"
-                            required
-                            value={formData.name}
-                            onChange={handleChange}
-                            placeholder="John Doe"
-                            className="w-full bg-slate-100 border border-slate-200 rounded-2xl px-6 py-4 text-lg text-slate-900 placeholder-slate-400 outline-none ring-offset-0 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-200 ease-out"
-                        />
+                    <div className="flex justify-center w-full">
+                        <div className="flex flex-col gap-3 w-10/12">
+                            <label htmlFor="name" className="block text-sm font-semibold text-slate-700 ml-2">
+                                Full Name
+                            </label>
+                            <input
+                                type="text"
+                                id="name"
+                                name="name"
+                                required
+                                value={formData.name}
+                                onChange={handleChange}
+                                placeholder="John Doe"
+                                className="w-full bg-slate-100 border border-slate-200 rounded-2xl px-6 py-4 text-lg text-slate-900 placeholder-slate-400 outline-none ring-offset-0 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-200 ease-out"
+                            />
+                        </div>
                     </div>
 
-                    <div className="flex flex-col gap-3">
-                        <label htmlFor="email" className="block text-sm font-semibold text-slate-700 ml-3">
-                            Email Address
-                        </label>
-                        <input
-                            type="email"
-                            id="email"
-                            name="email"
-                            required
-                            value={formData.email}
-                            onChange={handleChange}
-                            placeholder="john@example.com"
-                            className="w-full bg-slate-100 border border-slate-200 rounded-2xl px-6 py-4 text-lg text-slate-900 placeholder-slate-400 outline-none ring-offset-0 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-200 ease-out"
-                        />
+                    <div className="flex justify-center w-full">
+                        <div className="flex flex-col gap-3 w-10/12">
+                            <label htmlFor="email" className="block text-sm font-semibold text-slate-700 ml-2">
+                                Email Address
+                            </label>
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                required
+                                value={formData.email}
+                                onChange={handleChange}
+                                placeholder="john@example.com"
+                                className="w-full bg-slate-100 border border-slate-200 rounded-2xl px-6 py-4 text-lg text-slate-900 placeholder-slate-400 outline-none ring-offset-0 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-200 ease-out"
+                            />
+                        </div>
                     </div>
 
-                    <div className="flex flex-col gap-3">
-                        <label htmlFor="phone" className="block text-sm font-semibold text-slate-700 ml-3">
-                            Phone Number <span className="text-slate-400 font-normal">(Optional)</span>
-                        </label>
-                        <input
-                            type="tel"
-                            id="phone"
-                            name="phone"
-                            value={formData.phone}
-                            onChange={handleChange}
-                            placeholder="+1 (555) 000-0000"
-                            className="w-full bg-slate-100 border border-slate-200 rounded-2xl px-6 py-4 text-lg text-slate-900 placeholder-slate-400 outline-none ring-offset-0 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-200 ease-out"
-                        />
+                    <div className="flex justify-center w-full">
+                        <div className="flex flex-col gap-3 w-10/12">
+                            <label htmlFor="phone" className="block text-sm font-semibold text-slate-700 ml-2">
+                                Phone Number <span className="text-slate-400 font-normal">(Optional)</span>
+                            </label>
+                            <input
+                                type="tel"
+                                id="phone"
+                                name="phone"
+                                value={formData.phone}
+                                onChange={handleChange}
+                                placeholder="+1 (555) 000-0000"
+                                className="w-full bg-slate-100 border border-slate-200 rounded-2xl px-6 py-4 text-lg text-slate-900 placeholder-slate-400 outline-none ring-offset-0 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-200 ease-out"
+                            />
+                        </div>
                     </div>
 
                     {status === 'error' && (
